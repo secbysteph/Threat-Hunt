@@ -43,7 +43,6 @@ Putting all the evidence together, this was not a support session — it was a r
 | 12:34 | **Flag 2** | Defense Deception | Tamper decoy artifact created → `DefenderTamperArtifact.lnk` |
 | 12:50 | **Flag 3** | Data Probe | Clipboard accessed via PowerShell (`Get-Clipboard`) |
 | 12:51 | **Flag 4** | Host context reconnaissance | Host enumeration commands |
-| 12:52 | **Flag 9** | Privilege Recon | `whoami /groups` executed |
 | 12:53 | **Flag 5** | Storage Mapping | `wmic logicaldisk get name,freespace,size` |
 | 12:55 | **Flag 6** | Egress Check | First outbound connection → `www.msftconnecttest.com` |
 | 12:51 | **Flag 7** | Session Recon | Session enumeration commands |
