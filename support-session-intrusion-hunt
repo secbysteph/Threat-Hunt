@@ -93,7 +93,7 @@ DeviceFileEvents
 
 ### Flag Answer
 
-<>
+<img width="1278" height="652" alt="Image" src="https://github.com/user-attachments/assets/85a4fc4f-f227-45a9-953c-f2841352f109" />
 ``` gab-intern-vm ```
 
 ---
@@ -147,7 +147,7 @@ Execution policy bypasses are common in:
 
 This flag represents the initial foothold in the attack sequence.
 ### Flag Answer
-<img width="772" height="138" alt="Screenshot 2025-11-16 090638" src="https://github.com/user-attachments/assets/79879602-da87-4cf2-be00-dc49ef8e58db" />
+<img width="680" height="299" alt="Image" src="https://github.com/user-attachments/assets/88a95314-0394-49f4-9823-368839e68c34" />
 
 ``` -ExecutionPolicy ```
 
@@ -192,7 +192,7 @@ Staged artifacts like fake tamper files are common in intrusion playbooks design
 Recognizing planted artifacts helps distinguish actual tampering from intentional misdirection, improving investigative accuracy.
 
 ### Flag Answer
-<img width="585" height="442" alt="Screenshot 2025-11-16 091038" src="https://github.com/user-attachments/assets/92120389-5588-4db0-af84-3f2579179b9d" />
+<img width="442" height="356" alt="Image" src="https://github.com/user-attachments/assets/58bbf5f7-4253-4880-a48d-04641d9d3bd7" />
 
 ``` DefenderTamperArtifact.lnk ```
 
@@ -249,7 +249,7 @@ Attackers routinely check the clipboard early because:
 Detecting clipboard access helps identify early insight-gathering behaviors that precede more intrusive operations.
 
 ### Flag Answer
-<img width="758" height="257" alt="Screenshot 2025-11-16 091417" src="https://github.com/user-attachments/assets/54f5b26b-941f-4509-b404-7a2f406cdbb7" />
+<img width="597" height="356" alt="Image" src="https://github.com/user-attachments/assets/1d97262f-4c4f-4859-9c3c-98c78d2a3223" />
 
 ``` powershell.exe -NoProfile -Sta -Command "try { Get-Clipboard | Out-Null } catch { }" ```
 
@@ -302,7 +302,7 @@ Session enumeration is a reliable early indicator of malicious reconnaissance. I
 When combined with clipboard probing and privilege checks, this forms a complete reconnaissance triad.
 
 Flag Answer
-<img width="456" height="110" alt="Screenshot 2025-11-16 091741" src="https://github.com/user-attachments/assets/1724fb41-9ca7-41d2-aa30-875d23659b1c" />
+<img width="602" height="292" alt="Image" src="https://github.com/user-attachments/assets/36689496-6fc9-457e-aad7-746ee4b77633" />
 
 ``` 2025-10-09T12:51:44.3425653Z ```
 
@@ -351,7 +351,7 @@ Storage enumeration is a common discovery technique used to:
 This behavior strongly aligns with pre-exfiltration reconnaissance and is commonly observed in hands-on intrusion workflows.
 
 ### Flag Answer
-<img width="592" height="313" alt="Screenshot 2025-11-16 092123" src="https://github.com/user-attachments/assets/95985208-1cc7-41fd-8b52-cfbc739e6d3a" />
+<img width="768" height="289" alt="Image" src="https://github.com/user-attachments/assets/1b4f9532-8023-44a6-a963-cb787372e8e9" />
 
 ``` "cmd.exe" /c wmic logicaldisk get name,freespace,size" ```
 
@@ -403,7 +403,7 @@ Connectivity checks commonly precede:
 The use of RuntimeBroker.exe in the parent chain helps attackers blend into legitimate application workflows and reduces detection visibility.
 
 ### Flag Answer
-<img width="556" height="443" alt="Screenshot 2025-11-16 094448" src="https://github.com/user-attachments/assets/54f8383c-b822-4cf6-895a-f6a34df755c7" />
+<img width="563" height="350" alt="Image" src="https://github.com/user-attachments/assets/a6c2c9f6-412a-44b6-951c-1d75ab18fbe5" />
 
 
 ``` RuntimeBroker.exe ```
@@ -460,7 +460,7 @@ Session enumeration is a high-value signal of interactive intrusion because it e
 Tracking the initiating process ID helps correlate this behavior to later persistence and data staging events.
 
 ### Flag Answer
-<img width="1204" height="341" alt="Screenshot 2025-11-16 095223" src="https://github.com/user-attachments/assets/b2a327f2-6c34-45ab-91dd-1ef2fd010eca" />
+<img width="1751" height="841" alt="Image" src="https://github.com/user-attachments/assets/9e2f6424-2786-448e-bb32-d6ce9373d64a" />
 
 ```2533274790397065```
 
@@ -514,7 +514,7 @@ In this scenario, the process inventory aligns with the actor’s methodical rec
 
 ### Flag Answer
 
-<img width="588" height="258" alt="image" src="https://github.com/user-attachments/assets/45e46f46-377f-49e6-92a7-e0a1dd328454" />
+<img width="743" height="437" alt="Image" src="https://github.com/user-attachments/assets/26899ab4-91e2-4742-93d8-2ddd154b767c" />
 
 ``` tasklist.exe ```
 
@@ -571,7 +571,7 @@ The timing of this event—immediately after session recon—aligns with typical
 
 ### Flag Answer
 
-<img width="451" height="162" alt="Screenshot 2025-11-16 100320" src="https://github.com/user-attachments/assets/9cf77afc-4d56-4211-8a42-d2af538de273" />
+<img width="824" height="338" alt="Image" src="https://github.com/user-attachments/assets/1a51ab9a-2c8e-49ff-a171-43f0f402b565" />
 
 
 ``` 2025-10-09T12:52:14.3135459Z ```
@@ -628,7 +628,7 @@ Using a legitimate Windows connectivity-test domain helps attackers avoid trigge
 
 ### Flag Answer
 
-<img width="942" height="286" alt="Screenshot 2025-11-16 100522" src="https://github.com/user-attachments/assets/1e2b365f-2c4a-4150-bd15-725b20f45910" />
+<img width="721" height="297" alt="Image" src="https://github.com/user-attachments/assets/dc802c8c-6ba2-4004-8a80-b3597ee3cb43" />
 
 
 ``` www.msftconnecttest.com ```
@@ -681,7 +681,7 @@ ZIP-based staging is a common tradecraft technique for both threat actors and re
 
 ### Flag Answer
 
-<img width="1523" height="187" alt="Screenshot 2025-11-16 100825" src="https://github.com/user-attachments/assets/f8d29e43-0b9d-4a18-a1bc-369fe742d328" />
+<img width="586" height="383" alt="Image" src="https://github.com/user-attachments/assets/2425dbb3-a1ee-4b8d-b2ef-5e4b263ac0dd" />
 
 
 ```C:\Users\Public\ReconArtifacts.zip```
@@ -734,7 +734,7 @@ Even a failed exfil attempt confirms the actor reached the final stages of a typ
 
 ### Flag Answer
 
-<img width="1203" height="132" alt="Screenshot 2025-11-16 102855" src="https://github.com/user-attachments/assets/23c3c927-f934-43e0-87a8-3451a0e70005" />
+<img width="1110" height="554" alt="Image" src="https://github.com/user-attachments/assets/85ca3c9e-2ebd-4d12-97ac-31daa777c960" />
 
 
 ``` 100.29.147.161 ``` 
@@ -791,7 +791,7 @@ The name SupportToolUpdater reinforces the attacker’s narrative and blends mal
 
 ### Flag Answer
 
-<img width="931" height="143" alt="Screenshot 2025-11-16 103130" src="https://github.com/user-attachments/assets/ca5471f8-39e5-45e2-a8f5-8cb0f264ca1d" />
+<img width="1013" height="301" alt="Image" src="https://github.com/user-attachments/assets/80a63175-6dcb-4e82-af32-4ec4b8b83992" />
 
 
 ``` SupportToolUpdater ```
@@ -908,8 +908,7 @@ The use of a fake “support chat log” directly reinforces the actor’s overa
 
 ### Flag Answer
 
-<img width="910" height="850" alt="Screenshot 2025-11-16 104957" src="https://github.com/user-attachments/assets/9a73805b-9f64-4fd4-9855-c17a2e089431" />
-
+<img width="722" height="326" alt="Image" src="https://github.com/user-attachments/assets/f0470569-7c13-4571-a75f-bdc8b5c69cf3" />
 
 ``` SupportChat_log.lnk ```
 
