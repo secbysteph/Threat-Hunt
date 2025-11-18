@@ -96,20 +96,18 @@ DeviceFileEvents
 ``` gab-intern-vm ```
 
 ---
-## Flag 1 – Earliest Anomalous Execution (Execution Policy Parameter)
+## Flag 1 – First Anomalous Execution 
 
 ### Objective
-Identify the earliest unusual execution event that could represent the initial entry point of the intrusion. The focus is on detecting atypical script execution behavior originating from untrusted paths, particularly the user’s Downloads directory.
+Identify the earliest suspicious execution event that could represent the start of malicious activity on the host.
 
 ### Finding
-The earliest suspicious execution occurred when the user on **gab-intern-vm** launched `SupportTool.ps1` using PowerShell with the **`-ExecutionPolicy`** parameter.  
-This parameter was the **first CLI switch** observed in the malicious command line.
+The earliest abnormal command came from PowerShell executing SupportTool.ps1 with the -ExecutionPolicy flag, commonly used to bypass PowerShell restrictions and run unsigned or untrusted scripts.
 
 ### Evidence
-- The script `SupportTool.ps1` was executed directly from the **Downloads** directory.  
-- The command line included the parameter:  
-- This is consistent with attempts to run unsigned or untrusted scripts without policy restrictions.
-- The timestamp places this as the first anomalous execution within the investigation window.
+- Execution originated from the Downloads folder.- The command line included the parameter:
+- Included policy bypass (-ExecutionPolicy) in the command line.
+- Matches the threat pattern associated with support-themed malicious tooling.
 
 ### Query Used
 ```
@@ -123,28 +121,6 @@ DeviceProcessEvents
 | project TimeGenerated, DeviceName, FileName, ProcessCommandLine, FirstSwitch
 | order by TimeGenerated asc
 ```
-
-### Why This Matters
-
-Execution policy bypasses are common in:
-
-- Initial access
-
-- Script-based payload delivery
-
-- Living-off-the-land tradecraft
-
-- Reducing PowerShell’s built-in security friction
-
-- Identifying the first CLI parameter used allows analysts to:
-
-- Anchor the attack timeline
-
-- Validate the method of execution
-
-- Confirm that the script was intentionally allowed to circumvent security controls
-
-This flag represents the initial foothold in the attack sequence.
 ### Flag Answer
 <img width="680" height="299" alt="Image" src="https://github.com/user-attachments/assets/88a95314-0394-49f4-9823-368839e68c34" />
 
@@ -155,20 +131,15 @@ This flag represents the initial foothold in the attack sequence.
 ## Flag 2 – Defense Disabling (Simulated Tamper Indicator)
 
 ### Objective
-Identify any artifacts or events that suggest the actor attempted to imply, simulate, or stage security posture changes—specifically actions that appear to disable or tamper with security controls without actually modifying them.
+Determine whether the attacker attempted to disable or simulate changes to Windows Defender.
 
 ### Finding
-A suspicious shortcut file named **DefenderTamperArtifact.lnk** was discovered on **gab-intern-vm**.  
-This file was **manually accessed via Explorer.exe**, indicating that the actor intentionally opened it.  
-No real Defender configuration changes occurred; the file served as a planted decoy.
+A staged shortcut file named DefenderTamperArtifact.lnk was created and opened. No Defender settings were actually modified, indicating the file was used to create a false impression of tampering.
 
 ### Evidence
-- `DefenderTamperArtifact.lnk` was created and accessed during the intrusion window.  
-- The shortcut’s naming convention implies Defender tamper actions, but:
-  - No changes were logged in Defender configuration or registry keys.
-  - No corresponding tampering commands (e.g., `Set-MpPreference`) were executed.
-- Access via **Explorer.exe** supports that the file was intentionally opened, likely to reinforce the deception narrative.
-
+- .lnk artifact created during the intrusion window.
+- Opened via Explorer.exe (manual access).
+- No Defender registry or configuration changes detected.
 
 ### Query Used
 ```
@@ -181,15 +152,6 @@ DeviceFileEvents
 | where InitiatingProcessCommandLine == "Explorer.EXE"
 ```
 
-### Why This Matters
-
-Staged artifacts like fake tamper files are common in intrusion playbooks designed to:
-- Distract analysts
-- Inflate the perceived scope of compromise
-- Justify other suspicious activity as “troubleshooting”
-- Create a false trail that implies IT or support involvement
-Recognizing planted artifacts helps distinguish actual tampering from intentional misdirection, improving investigative accuracy.
-
 ### Flag Answer
 <img width="442" height="356" alt="Image" src="https://github.com/user-attachments/assets/58bbf5f7-4253-4880-a48d-04641d9d3bd7" />
 
@@ -197,20 +159,19 @@ Recognizing planted artifacts helps distinguish actual tampering from intentiona
 
 ---
 
-## Flag 4 – Quick Data Probe (Clipboard Access)
+## Flag 3 – Clipboard Probe
 
 ### Objective
-Identify short-lived actions that attempt to gather easily accessible, high-value data such as clipboard contents. These probes often occur early in an intrusion as attackers look for credentials, tokens, or other sensitive information requiring minimal effort to obtain.
+Identify attempts to capture quick-access user data such as clipboard contents.
 
 ### Finding
-The actor executed a PowerShell command designed to silently read the clipboard. This was a brief, opportunistic action consistent with early-stage reconnaissance and “quick win” data collection.
+PowerShell was used to silently request clipboard data — a common technique for capturing copied credentials, tokens, or sensitive text.
 
 ### Evidence
 The following command was executed on **gab-intern-vm**:
-
-- The command suppresses errors and returns no output, indicating covert intent.
-- The use of `-NoProfile` and `-Sta` reduces detection opportunities.
-- Clipboard access is a known tradecraft method for capturing credentials copied during authentication.
+- PowerShell executed with -NoProfile and -Sta for stealth.
+- Command suppressed errors and produced no output (Out-Null).
+- Behavior aligns with credential-harvesting reconnaissance.
 
 ### Query Used
 ```
@@ -223,29 +184,6 @@ DeviceProcessEvents
 | project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessCommandLine
 | where ProcessCommandLine contains "clip"
 ```
-### Why This Matters
-
-Clipboard data frequently contains:
-
-- Passwords
-
-- MFA codes
-
-- SSO tokens
-
-- PII and sensitive business data
-
-Attackers routinely check the clipboard early because:
-
-- It is low-effort
-
-- It avoids writing files
-
-- It requires no elevated privileges
-
-- It can reveal immediate value without deeper exploration
-
-Detecting clipboard access helps identify early insight-gathering behaviors that precede more intrusive operations.
 
 ### Flag Answer
 <img width="597" height="356" alt="Image" src="https://github.com/user-attachments/assets/1d97262f-4c4f-4859-9c3c-98c78d2a3223" />
@@ -254,26 +192,18 @@ Detecting clipboard access helps identify early insight-gathering behaviors that
 
 ---
 
-## Flag 5 – Host Context Recon (Session Enumeration)
+## Flag 4 – Session Enumeration
 
 ### Objective
-Identify reconnaissance activity that gathers basic host and user context—specifically attempts to determine which sessions are active on the system. Attackers often use session enumeration to assess whether a user is present, whether the machine is safe to operate on, and whether privilege escalation opportunities are tied to active sessions.
+Identify reconnaissance actions targeting user presence and session information.
 
 ### Finding
-The actor executed **qwinsta**, a command used to list active terminal sessions. This provided the attacker with details about logged-in accounts, session states, and potential interactive users.
-
-The **last** recon attempt occurred at:
-
-**2025-10-09T12:51:44.3425653Z**
+The attacker executed qwinsta, a native Windows utility used to list active user sessions, session states, and terminal information.
 
 ### Evidence
-- `qwinsta.exe` was executed from **gab-intern-vm** within the intrusion window.
-- This command enumerates:
-  - Session IDs  
-  - Username  
-  - Session state (active/disconnected)  
-  - Session type (console/RDP)  
-- Execution aligned directly after clipboard probing and before privilege enumeration, matching a typical recon flow.
+- Executed shortly after clipboard probing.
+- Revealed user presence and session activity on gab-intern-vm.
+- Common early-stage recon tactic.
 
 ### Query Used
 ```
@@ -286,19 +216,6 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 | project TimeGenerated, FileName, ProcessCommandLine, InitiatingProcessCommandLine
 ```
-### Why This Matters
-
-Session enumeration is a reliable early indicator of malicious reconnaissance. It supports attacker objectives such as:
-
-- Identifying if the user is currently active
-
-- Determining the safety window for further operations
-
-- Confirming remote session availability
-
-- Planning persistence or lateral movement steps based on active user context
-
-When combined with clipboard probing and privilege checks, this forms a complete reconnaissance triad.
 
 Flag Answer
 <img width="602" height="292" alt="Image" src="https://github.com/user-attachments/assets/36689496-6fc9-457e-aad7-746ee4b77633" />
@@ -307,25 +224,18 @@ Flag Answer
 
 ---
 
-## Flag 6 – Storage Surface Mapping (Logical Disk Enumeration)
+## Flag 5 – Logical Disk Recon
 
 ### Objective
-Detect reconnaissance activity that enumerates local storage devices, available free space, and mounted volumes. Attackers perform this step to understand where data can be stored, staged, or exfiltrated from.
+Determine whether the attacker inspected available storage for staging or exfiltration planning.
 
 ### Finding
-The actor executed a WMIC command to enumerate logical disks and their free space. This represents a deliberate check of storage surfaces, often performed before staging artifacts or preparing exfiltration bundles.
-
-The second command tied to this activity was:
-
-**`"cmd.exe" /c wmic logicaldisk get name,freespace,size"`**
+wmic logicaldisk get name,freespace,size was executed to identify local and removable drives and free disk space.
 
 ### Evidence
-- Command enumerated all logical drives (C:, D:, network shares, removable media).
-- Output reveals available free space, which attackers use to determine:
-  - Where to write temp files
-  - Where to place ZIP archives
-  - Whether the disk has enough room for staged artifacts
-- This action occurred shortly before ZIP bundle creation (`ReconArtifacts.zip`).
+- Output reveals writable paths and space available for ZIP staging.
+- Execution occurred just before the creation of ReconArtifacts.zip.
+- Matches common staging preparation behavior.
 
 ### Query Used
 ```
@@ -337,18 +247,6 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 
-### Why This Matters
-
-Storage enumeration is a common discovery technique used to:
-
-- Identify writable locations (Public folders, user profiles)
-
-- Select staging directories for exfiltration
-
-- Assess constraints for large file creation or compression tasks
-
-This behavior strongly aligns with pre-exfiltration reconnaissance and is commonly observed in hands-on intrusion workflows.
-
 ### Flag Answer
 <img width="768" height="289" alt="Image" src="https://github.com/user-attachments/assets/1b4f9532-8023-44a6-a963-cb787372e8e9" />
 
@@ -356,21 +254,18 @@ This behavior strongly aligns with pre-exfiltration reconnaissance and is common
 
 ---
 
-## Flag 7 – Connectivity & Name Resolution Check
+## Flag 6 – Connectivity Check
 
 ### Objective
-Identify activity that verifies the system’s ability to resolve domain names and communicate with external hosts. Attackers commonly perform lightweight connectivity tests before attempting data exfiltration or command-and-control communication.
+Identify outbound connectivity tests used to confirm internet access before exfiltration attempts.
 
 ### Finding
-Outbound network activity originated from a process whose parent was **RuntimeBroker.exe**, indicating that the execution chain leveraged a user-context process often associated with application mediation. The initiating parent process identified was:
-
-**RuntimeBroker.exe**
+Outbound traffic originated from a chain where RuntimeBroker.exe was the parent process, helping blend the activity into normal OS operations.
 
 ### Evidence
-- Outbound requests to HTTP port 80 were observed.
-- Requests included known connectivity test domains (`msftconnecttest.com`), indicating resolution and egress validation.
-- The parent process recorded for the suspicious PowerShell-driven outbound check was `RuntimeBroker.exe`.
-- This aligns with the actor testing network availability before staging and exfiltration.
+- Outbound HTTP check executed via user context.
+- Connection to known Windows connectivity test infrastructure.
+- Parent process: RuntimeBroker.exe
 
 ### Query Used
 ```
@@ -387,20 +282,6 @@ DeviceNetworkEvents
           InitiatingProcessParentFileName
 ```
 
-### Why This Matters
-
-Connectivity checks commonly precede:
-
--Exfiltration attempts
-
--Command-and-control communication
-
--Remote payload staging
-
--Beaconing behavior
-
-The use of RuntimeBroker.exe in the parent chain helps attackers blend into legitimate application workflows and reduces detection visibility.
-
 ### Flag Answer
 <img width="563" height="350" alt="Image" src="https://github.com/user-attachments/assets/a6c2c9f6-412a-44b6-951c-1d75ab18fbe5" />
 
@@ -409,22 +290,17 @@ The use of RuntimeBroker.exe in the parent chain helps attackers blend into legi
 
 ---
 
-## Flag 8 – Interactive Session Discovery (Initiating Process Unique ID)
+## Flag 7 – Initiating Process Unique ID
 
 ### Objective
-Identify activity used to determine whether interactive or active user sessions are present on the system. Attackers perform this check to understand whether the endpoint is currently in use, which influences timing and stealth for subsequent actions.
+Tie together recon actions under the same executing process chain to identify operator continuity.
 
 ### Finding
-Session enumeration commands such as `query user`, `query session`, `qwinsta`, and `quser` were executed on **gab-intern-vm**.  
-The **unique ID of the initiating process chain** responsible for this activity was:
-
-**2533274790397065**
+Multiple recon commands were linked to a single initiating process chain, identified by the unique ID 2533274790397065.
 
 ### Evidence
-- Multiple session discovery commands were observed within the intrusion window.
-- These commands list current sessions, their states (Active/Disc), and session types.
-- The process chain for these recon commands led back to a single initiating process, uniquely identified by the `InitiatingProcessUniqueId` field.
-- This recon activity occurred shortly before privilege enumeration and storage mapping, matching known attacker workflow patterns.
+- qwinsta, query, whoami, and other recon commands traced back to the same ID.
+- Indicates a single hands-on-keyboard operator session.
 
 ### Query Used
 ```
@@ -444,19 +320,6 @@ DeviceProcessEvents
     InitiatingProcessFileName
 | order by TimeGenerated asc
 ```
-### Why This Matters
-
-Session enumeration is a high-value signal of interactive intrusion because it enables attackers to:
-
--Detect whether a human is currently active on the device
-
--Avoid performing noisy actions during active usage
-
--Determine whether elevated sessions are present
-
--Tailor persistence mechanisms to the user’s login patterns
-
-Tracking the initiating process ID helps correlate this behavior to later persistence and data staging events.
 
 ### Flag Answer
 <img width="1751" height="841" alt="Image" src="https://github.com/user-attachments/assets/9e2f6424-2786-448e-bb32-d6ce9373d64a" />
@@ -464,22 +327,18 @@ Tracking the initiating process ID helps correlate this behavior to later persis
 ```2533274790397065```
 
 ---
-## Flag 9 – Runtime Application Inventory (Process Enumeration)
+## Flag 8 – Process Inventory
 
 ### Objective
-Identify activity that enumerates running processes or services on the host. Attackers commonly perform this step to understand what security tools are active, what applications are running, and whether any obstacles exist for further operations.
+Determine whether the attacker enumerated running processes to identify defenses or high-value processes.
 
 ### Finding
-The actor executed **`tasklist.exe`**, a Windows-native utility used to enumerate all running processes. This activity occurred after privilege and session reconnaissance, consistent with an attacker building situational awareness on the host.
-
-The process that best demonstrated runtime process enumeration was:
-
-**tasklist.exe**
+The attacker ran tasklist.exe, a native utility that enumerates all running processes and memory usage.
 
 ### Evidence
-- `tasklist.exe` was observed on **gab-intern-vm** during the intrusion window.
-- This command provides a full list of running processes, their PIDs, memory usage, and service associations.
-- The command execution closely followed session and privilege enumeration, further validating an intentional reconnaissance phase.
+- Executed after privilege and session enumeration.
+- Reveals defender tools, credential stores, and target processes.
+- Common step in building host situational awareness.
 
 ### Query Used
 ```kql
@@ -495,21 +354,6 @@ DeviceProcessEvents
           InitiatingProcessFileName, ProcessVersionInfoFileDescription
 | order by TimeGenerated asc
 ```
-### Why This Matters
-
-Process enumeration is commonly used to:
-
--Identify active security tools
-
--Detect monitoring agents
-
--Confirm whether defensive processes can be bypassed
-
--Map high-value processes related to credentials or sensitive data
-
--Prepare for persistence, injection, or exploitation
-
-In this scenario, the process inventory aligns with the actor’s methodical reconnaissance flow.
 
 ### Flag Answer
 
@@ -519,27 +363,18 @@ In this scenario, the process inventory aligns with the actor’s methodical rec
 
 ---
 
-## Flag 10 – Privilege Surface Check (User & Group Enumeration)
+## Flag 9 – Privilege Enumeration
 
 ### Objective
-Identify attempts to enumerate the current user’s privilege level, group membership, and available security tokens. Attackers routinely perform this step early in an intrusion to determine whether privilege escalation is necessary.
+Identify attempts to assess the account’s current security groups and privilege levels.
 
 ### Finding
-The actor executed the Windows-native command:
-
-``` whoami /groups ```
-
-
-This command reveals all security groups associated with the current account and is commonly used to assess available privileges.  
-The **first** privilege enumeration event occurred at:
-
-**2025-10-09T12:52:14.3135459Z**
+The attacker executed whoami /groups, returning all security group memberships and privilege assignments.
 
 ### Evidence
-- `whoami /groups` was executed shortly after session enumeration (`qwinsta`).
-- This positions the activity directly within the reconnaissance phase of the intrusion.
-- The command provided the actor with insight into privilege level, token groups, and potential escalation paths.
-- The timestamp represents the earliest privilege-mapping activity on the host.
+- Timestamp indicates it immediately followed session enumeration.
+- Provides clear insight into escalation opportunities.
+- Confirms whether the user is administrative or privileged.
 
 ### Query Used
 ```kql
@@ -554,19 +389,6 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 | take 1
 ```
-### Why This Matters
-
-Privilege enumeration is a strong indicator of malicious intent because it:
-
-- Helps attackers determine what access they currently have
-
-- Identifies token privileges (SeDebugPrivilege, SeBackupPrivilege, etc.)
-
-- Reveals whether the user belongs to administrative or delegated groups
-
-- Guides next steps such as persistence, credential access, or lateral movement
-
-The timing of this event—immediately after session recon—aligns with typical attacker workflow.
 
 ### Flag Answer
 
@@ -577,23 +399,18 @@ The timing of this event—immediately after session recon—aligns with typical
 
 ---
 
-## Flag 11 – Proof of Access & Egress Validation (First Outbound Destination)
+## Flag 10 – First Outbound Destination
 
 ### Objective
-Identify network activity that demonstrates both the ability to reach external destinations and the intent to validate outbound communication pathways. Attackers frequently perform lightweight outbound checks before attempting exfiltration or command-and-control communication.
+Determine the initial external resource contacted during the intrusion window.
 
 ### Finding
-The first outbound network destination contacted during the intrusion window was:
-
-**www.msftconnecttest.com**
-
-This domain is commonly used by Windows to validate internet connectivity, making it an ideal covert method for attackers to blend egress checks with benign-looking traffic.
+The first outbound destination was www.msftconnecttest.com, the domain used by Windows to test internet access.
 
 ### Evidence
-- Outbound HTTP traffic to `www.msftconnecttest.com` was observed immediately after reconnaissance and system mapping.
-- The activity originated from user-context PowerShell execution.
-- No other suspicious outbound connections preceded this one.
-- The timing aligns with typical pre-exfiltration validation behavior.
+- HTTP traffic aligned with egress verification.
+- Initiated by the same PowerShell process chain.
+- Used to validate connectivity before exfiltration attempts.
 
 ### Query Used
 ```
@@ -609,22 +426,6 @@ DeviceNetworkEvents
 | order by TimeGenerated asc
 ```
 
-### Why This Matters
-
-Outbound connectivity checks:
-
-- Confirm the host can reach the internet
-
-- Validate whether HTTP/HTTPS egress is permitted
-
-- Allow attackers to test resolution and routing without raising suspicion
-
-- Precede exfiltration attempts and C2 beacons
-
-- Help the attacker map which ports, domains, and protocols are allowed out of the network
-
-Using a legitimate Windows connectivity-test domain helps attackers avoid triggering alerts.
-
 ### Flag Answer
 
 <img width="721" height="297" alt="Image" src="https://github.com/user-attachments/assets/dc802c8c-6ba2-4004-8a80-b3597ee3cb43" />
@@ -634,26 +435,18 @@ Using a legitimate Windows connectivity-test domain helps attackers avoid trigge
 
 ---
 
-## Flag 12 – Artifact Staging (Recon Data Bundled)
+## Flag 11 – Data Staging
 
 ### Objective
-Identify actions that consolidate reconnaissance outputs or collected artifacts into a single location or compressed package. This typically occurs immediately before an exfiltration attempt.
+Identify where the attacker staged reconnaissance data prior to exfiltration.
 
 ### Finding
-The actor created a ZIP archive named **ReconArtifacts.zip** in the **Public** user directory.  
-This file represents the staging of collected data in preparation for transfer.
-
-The full path of the staged artifact was:
-
-**C:\Users\Public\ReconArtifacts.zip**
+A ZIP archive named ReconArtifacts.zip was created in the Public user directory.
 
 ### Evidence
-- A `.zip` file was created within the intrusion window.
-- The archive was written to a globally accessible directory (`C:\Users\Public`), suggesting the attacker wanted:
-  - predictable write access  
-  - broad permissions  
-  - a location unlikely to be monitored by the user  
-- This activity directly preceded an attempted outbound connection to an external IP address.
+- Created immediately after recon commands.
+- Location (C:\Users\Public) chosen for write access and low visibility.
+- Matches textbook pre-exfiltration staging behavior.
 
 ### Query Used
 ```
@@ -664,46 +457,27 @@ DeviceFileEvents
 | where InitiatingProcessAccountDomain == "gab-intern-vm"
 | project TimeGenerated, DeviceName, ActionType, InitiatingProcessAccountName, FileName, FolderPath
 ```
-### Why This Matters
-
-Staging is a critical indicator of malicious behavior because it:
-
-- Shows clear preparation for data exfiltration
-
-- Represents deliberate collection and packaging of reconnaissance data
-
-- Often serves as the final step before an upload attempt
-
-- Provides strong evidence of intent even if the exfiltration fails
-
-ZIP-based staging is a common tradecraft technique for both threat actors and red teams.
 
 ### Flag Answer
 
 <img width="586" height="383" alt="Image" src="https://github.com/user-attachments/assets/2425dbb3-a1ee-4b8d-b2ef-5e4b263ac0dd" />
 
-
 ```C:\Users\Public\ReconArtifacts.zip```
 
 ---
 
-## Flag 13 – Outbound Transfer Attempt (Simulated Exfiltration)
+## Flag 12 – Exfil Attempt
 
 ### Objective
-Identify any network activity indicating an attempt to move staged data off the host. Even if the upload fails, outbound transfer attempts demonstrate malicious intent and confirm that the actor is testing or actively using egress channels.
+Identify any attempt to transfer staged data to an external location.
 
 ### Finding
-The actor attempted an outbound connection to the external IP:
-
-**100.29.147.161**
-
-This connection occurred shortly after the creation of the `ReconArtifacts.zip` staging file, indicating a simulated or attempted exfiltration step.
+The attacker attempted an outbound connection to 100.29.147.161, shortly after ZIP creation.
 
 ### Evidence
-- Network telemetry shows an outbound HTTP request from **gab-intern-vm** to `100.29.147.161`.
-- The initiating process was a PowerShell execution under the user `g4bri3lintern`.
-- No successful file upload was confirmed, but the attempt itself demonstrates intent to exfiltrate.
-- The timing aligns directly after the ZIP bundling activity, forming a complete exfil attempt chain.
+- Outbound connection originated from PowerShell.
+- The event timing correlates directly with staging completion.
+- No confirmed download/upload, but clear exfil intent.
 
 ### Query Used
 ```
@@ -715,22 +489,6 @@ DeviceNetworkEvents
 | project TimeGenerated, DeviceName, RemoteIP, RemoteUrl, RemotePort, InitiatingProcessCommandLine
 ```
 
-### Why This Matters
-
-Outbound transfer attempts are critical indicators because they:
-
-- Reveal the adversary’s intention to remove data from the environment
-
-- Validate the attacker’s reconnaissance and staging phases
-
-- Identify which external services or IPs are being used as exfil endpoints
-
-- Provide valuable indicators for network containment and monitoring
-
-- Demonstrate the ability to perform outbound communication despite security controls
-
-Even a failed exfil attempt confirms the actor reached the final stages of a typical intrusion workflow.
-
 ### Flag Answer
 
 <img width="1110" height="554" alt="Image" src="https://github.com/user-attachments/assets/85ca3c9e-2ebd-4d12-97ac-31daa777c960" />
@@ -740,28 +498,17 @@ Even a failed exfil attempt confirms the actor reached the final stages of a typ
 
 ---
 
-## Flag 14 – Scheduled Re-Execution Persistence (Scheduled Task Creation)
-
+## Flag 13 – Scheduled Task Persistence
 ### Objective
-Identify mechanisms that ensure the attacker’s tooling will automatically run again after a reboot or user sign-in. Scheduled tasks are a common persistence method because they do not require elevated privileges if created under a user context.
+Identify persistence mechanisms created by the attacker to ensure their tool re-executes automatically.
 
 ### Finding
-The actor created a scheduled task named:
-
-**SupportToolUpdater**
-
-This task is configured to trigger at logon, ensuring the malicious support-themed tooling re-executes automatically on each user session.
+A scheduled task named SupportToolUpdater was added to trigger at logon.
 
 ### Evidence
-- `schtasks.exe` was executed with the `/Create` parameter.
-- The task name clearly follows the attacker’s “support” narrative theme.
-- This persistence mechanism was set shortly after reconnaissance and artifact staging.
-- The timing of this event indicates deliberate preparation for long-term access.
-
-Example matching activity:
-
-``` "schtasks.exe" /Create /SC ONLOGON /TN SupportToolUpdater /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Users\g4bri3lintern\Downloads\SupportTool.ps1"" /RL LIMITED /F  ```
-
+- Created via schtasks.exe /Create.
+- Matches the attack’s “support” naming theme.
+- Ensures persistence across reboots and user logons.
 
 ### Query Used
 ```
@@ -772,55 +519,27 @@ DeviceProcessEvents
 | where FileName contains "schtasks"
 | project TimeGenerated, DeviceName, FileName, ProcessCommandLine
 ```
-### Why This Matters
-
-Scheduled task persistence is widely used by attackers because it:
-
-- Survives reboots and logouts
-
-- Executes under the user context, reducing detection
-
-- Mimics legitimate administrative behavior
-
-- Requires no advanced evasion techniques
-
-- Fits into support-themed deception (naming looks “helpdesk-like”)
-
-The name SupportToolUpdater reinforces the attacker’s narrative and blends malicious persistence into what appears to be routine support maintenance.
 
 ### Flag Answer
 
 <img width="1013" height="301" alt="Image" src="https://github.com/user-attachments/assets/80a63175-6dcb-4e82-af32-4ec4b8b83992" />
 
-
 ``` SupportToolUpdater ```
 
 ---
 
-## Flag 15 – Autorun Fallback Persistence (Registry-Based Startup Entry)
+## Flag 14 – Registry Autorun Persistence
 
 ### Objective
-Identify lightweight persistence mechanisms created under the user context, specifically autorun entries in the registry or startup directory. These serve as backup mechanisms designed to execute malicious tooling even if primary persistence methods are removed.
+Determine whether the attacker configured fallback persistence mechanisms.
 
 ### Finding
-A user-scope autorun registry value named:
-
-**RemoteAssistUpdater**
-
-was identified as the fallback persistence mechanism.  
-Although the relevant telemetry had rolled out of retention, the CTF administrator confirmed that this was the intended registry value captured during the scenario.
+A registry-based autorun entry named RemoteAssistUpdater was added as a secondary persistence layer.
 
 ### Evidence
-- No autorun registry events were present in current telemetry due to log retention limits.
-- Behavior aligns with the attack pattern:
-  - Support-themed naming convention  
-  - Tied directly to execution of SupportTool.ps1  
-  - Established shortly after scheduled task creation  
-- Registry autoruns are commonly used for:
-  - User-context persistence  
-  - Low-privilege persistence  
-  - Backup execution of tooling if scheduled tasks fail  
-  - Blending into IT-support workflows  
+- Staged shortly after scheduled task creation.
+- Mirrors naming pattern of support-themed tooling.
+- Acts as self-healing persistence if the scheduled task is removed.
 
 ### Query Used
 _The expected table returned no results due to data retention expiration, as acknowledged in scenario instructions._
@@ -834,49 +553,24 @@ DeviceRegistryEvents
 | where RegistryValueName contains "Assist" or RegistryValueName contains "Support"
 ```
 
-### Why This Matters
-
-Registry autoruns are highly reliable and stealthy persistence mechanisms because:
-
-- They do not require administrative rights
-
-- They execute at each user logon
-
-- They integrate into legitimate Windows behavior
-
-- They avoid creating obvious scheduled tasks
-
-- They are rarely monitored in non-hardened environments
-
-In this intrusion, RemoteAssistUpdater mirrors the support-themed deception used throughout the attack chain, reinforcing the actor’s attempt to disguise persistence as legitimate remote support activity.
-
 ### Flag Answer
 
 ``` RemoteAssistUpdater ```
 
 ---
 
-## Flag 16 – Planted Narrative / Cover Artifact
+## Flag 15 – Deception Artifact
 
 ### Objective
-Identify any artifacts deliberately created to justify, disguise, or mislead investigators regarding the nature of the suspicious activity. These “narrative” files are often designed to mimic legitimate IT support artifacts.
+Identify artifacts intentionally planted to mislead investigators or justify earlier suspicious activity.
 
 ### Finding
-A shortcut file named:
-
-**SupportChat_log.lnk**
-
-was discovered and accessed on **gab-intern-vm**.  
-The file’s presence and naming strongly suggest a staged attempt to fabricate a narrative of a legitimate support session, aligning with the attacker’s support-themed deception.
+A shortcut named SupportChat_log.lnk was created to fabricate the appearance of a legitimate support conversation.
 
 ### Evidence
-- `SupportChat_log.lnk` was created under the **Recent** directory: `C:\Users\g4bri3lintern\AppData\Roaming\Microsoft\Windows\Recent\`
-- The shortcut was opened via `Explorer.exe`, indicating intentional viewing.
-- The timing of the artifact correlates directly with:
-- Reconnaissance  
-- Data staging  
-- Persistence creation  
-- The name “SupportChat_log” implies a support transcript or troubleshooting log, meant to obscure malicious intent.
+- Created under the user’s Recent folder.
+- Opened via Explorer.exe, confirming intentional viewing.
+- The name aligns with the helpdesk-themed deception strategy.
 
 ### Query Used
 ```kql
@@ -888,22 +582,6 @@ DeviceFileEvents
 | project TimeGenerated, ActionType, DeviceName, FileName,
         InitiatingProcessFileName, FolderPath
 ```
-
-### Why This Matters
-
-Planted artifacts are a hallmark of attackers attempting to blend into legitimate workflows. This technique:
-
-- Establishes a false explanation for observed activity
-
-- Reduces suspicion for high-risk commands executed earlier
-
-- Suggests a support-related context to justify reconnaissance and persistence
-
-- Can mislead inexperienced analysts or automated triage systems
-
-- Aligns with long-term persistence by normalizing suspicious actions
-
-The use of a fake “support chat log” directly reinforces the actor’s overarching theme of impersonating remote assistance.
 
 ### Flag Answer
 
