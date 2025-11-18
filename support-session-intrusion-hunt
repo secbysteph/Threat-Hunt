@@ -38,7 +38,7 @@ Putting all the evidence together, this was not a support session — it was a r
 
 | Time (UTC) | Flag | Stage | Event / Artifact |
 |------------|-------|--------|------------------|
-| 12:22 | **Starting Point** | Starting Point | Most suspicious machine identified → `gab-intern-vm` |
+| 12:22 | **Flag 0** | Starting Point | Most suspicious machine identified → `gab-intern-vm` |
 | 12:22 | **Flag 1** | Initial Execution | `SupportTool.ps1` launched from Downloads (`-ExecutionPolicy`) |
 | 12:34 | **Flag 2** | Defense Deception | Tamper decoy artifact created → `DefenderTamperArtifact.lnk` |
 | 12:50 | **Flag 3** | Data Probe | Clipboard accessed via PowerShell (`Get-Clipboard`) |
@@ -60,25 +60,22 @@ Putting all the evidence together, this was not a support session — it was a r
 
 # Flag-by-Flag Findings
 
-## Flag 0 – Starting Point Identification
+## Flag 0 – Determining Where to Start
 
 ### Objective
-Determine which machine should be the primary focus of the threat hunt based on early indicators, file naming patterns, and activity observed in the first half of October. The goal is to identify the endpoint most likely associated with the initial execution of suspicious support-themed tooling.
+The goal was to find the system that first showed suspicious support-themed activity during October 1–15. Using keyword-based hunting (“support,” “tool,” “help,” “desk”), gab-intern-vm surfaced immediately as the earliest and most consistently affected host.
 
-### Finding
+### Why This Host Was Flagged
 The earliest and most relevant suspicious activity was traced to **gab-intern-vm**, which showed:
-- Execution of support-themed tooling from the **Downloads** directory  
-- Early-October activity matching the intel provided  
-- File naming patterns (“support,” “tool”) consistent with other affected hosts  
-- The presence of artifacts linked to subsequent stages of the intrusion  
+- It executed a suspicious PowerShell script (SupportTool.ps1) from the Downloads folder.  
+- It matched all keyword indicators from the scenario. 
+- It showed multiple related process executions and artifacts. 
 
 ### Evidence
 Within the date window of October 1–15, 2025, only **gab-intern-vm** recorded:
 - A `SupportTool.ps1` file in the Downloads folder  
 - Multiple process executions originating from this file  
 - Matches to keyword indicators: *support*, *tool*, *help*, *desk*  
-
-The distribution of hosts in the dataset indicated this system was the earliest and most consistently associated with suspicious file execution.
 
 ### Query Used
 ```
@@ -93,18 +90,10 @@ DeviceFileEvents
     by FileName, SHA256, FileSize
 | sort by Count desc
 ```
-### Why This Matters
-Identifying the correct starting point is critical in a threat hunt.
-It establishes:
-- The earliest confirmed execution of malicious tooling
-- The logical origin of the intrusion timeline
-- The baseline from which all subsequent activity can be reconstructed
-Choosing the wrong starting system leads to incomplete or misleading analysis, so Flag 1 acts as the anchor for the full investigation.
 
 ### Flag Answer
 
-<img width="605" height="146" alt="Screenshot 2025-11-16 090251" src="https://github.com/user-attachments/assets/dafd4bac-bfff-4102-8011-e9ce68f942e1" />
-
+<>
 ``` gab-intern-vm ```
 
 ---
