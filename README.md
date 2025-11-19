@@ -592,263 +592,35 @@ DeviceFileEvents
 ---
 
 # MITRE ATT&CK Mapping
+**Phase 1: Initial Compromise (Flag 1)** 
+- T1059.001 – PowerShell: Execution of a script using a bypassed execution policy to run untrusted code.
 
-The following table maps the observed behaviors during the SupportTool intrusion to relevant MITRE ATT&CK techniques. Techniques were selected based on confirmed telemetry, tool usage, and the attacker’s workflow across execution, discovery, persistence, and exfiltration phases.
+**Phase 2: Defense Evasion & Persistence Establishment (Flags 2, 13, 14, 15)** 
+- T1562.001 – Impair Defenses: Use of staged tamper artifacts to simulate Defender alteration.
+- T1053.005 – Scheduled Task: Creation of a malicious logon-based scheduled task for persistence.
+- T1547.001 – Registry Autoruns: Addition of a user-level autorun entry as fallback persistence.
+- T1036 – Masquerading: Deployment of deceptive files designed to disguise malicious activity as legitimate support operations.
 
-| Flag | Tactic | Technique | ID | Description |
-|------|--------|-----------|----|-------------|
-| 1 | Recon | Initial Target Identification | N/A | Identification of the starting point for threat analysis (not a MITRE technique). |
-| 2 | Execution | Command and Scripting Interpreter: PowerShell | **T1059.001** | Execution of `SupportTool.ps1` with `-ExecutionPolicy` bypass. |
-| 3 | Defense Evasion | Masquerading | **T1036** | Use of `DefenderTamperArtifact.lnk` to imply security tampering. |
-| 4 | Credential Access | Clipboard Data | **T1115** | PowerShell command executed to retrieve clipboard contents. |
-| 5 | Discovery | System Owner/User Discovery | **T1087** | Session enumeration (`qwinsta`) to identify active users. |
-| 6 | Discovery | File and Directory Discovery | **T1083** | Disk enumeration using `wmic logicaldisk` to map storage surfaces. |
-| 7 | Discovery | System Network Configuration Discovery | **T1016** | Outbound connectivity tests to validate external network access. |
-| 7 | Command & Control | Application Layer Protocol | **T1071.001** | HTTP(S)-based outbound communication blending with legitimate traffic. |
-| 8 | Discovery | Process Discovery | **T1057** | Runtime process listing using `tasklist.exe`. |
-| 9 | Discovery | Permission Groups Discovery | **T1069** | `whoami /groups` used to enumerate privilege levels. |
-| 10 | Discovery | System Network Connections Discovery | **T1049** | Outbound checks to `www.msftconnecttest.com`. |
-| 10 | C2 / Exfil Prep | Exfiltration Over Unencrypted/Encrypted Channel | **T1041 / T1048** | Validation of outbound channels prior to exfiltration attempt. |
-| 11 | Collection | Data Staged | **T1074** | Creation of `ReconArtifacts.zip` in `C:\Users\Public`. |
-| 12 | Exfiltration | Exfiltration Over Web Services | **T1567.002** | Attempted outbound transfer to `100.29.147.161`. |
-| 13 | Persistence | Scheduled Task | **T1053.005** | Task created (`SupportToolUpdater`) for logon persistence. |
-| 14 | Persistence | Registry Run Keys/Startup Folder | **T1547.001** | Autorun entry created (`RemoteAssistUpdater`). |
-| 15 | Defense Evasion | Misdirection / User Impersonation | **T1036.004** | Use of fake “SupportChat_log.lnk” to justify earlier activity. |
+**Phase 3: Systemwide Discovery (Flags 3–10)** 
+- T1033 – Account Discovery: Enumeration of sessions and user context (Flags 3, 7).
+- T1082 – System Information Discovery: Queries for system and privilege details (Flags 4, 9).
+- T1083 – File & Directory Discovery: Logical disk enumeration to inspect storage surfaces (Flag 5).
+- T1046 – Network Service Discovery: Connectivity checks to verify outbound access (Flag 6).
+- T1057 – Process Discovery: Review of running processes using native tools (Flag 8).
+- T1049 – System Network Connections Discovery: Identification of live outbound connections (Flag 10).
 
----
+**Phase 4: Collection & Staging (Flags 3, 11, 12)** 
+- T1560.001/002 – Archive Collected Data: Collection and compression of recon data.
+- T1074.001 – Local Staging: Placement of a ZIP archive in a public directory prior to exfiltration.
 
-# MITRE Summary by Tactic
-
-### **Execution**
-- `T1059.001` – PowerShell execution via custom support script.
-
-### **Privilege & Session Discovery**
-- `T1087`, `T1069`, `T1049`, `T1016` – User, group, session, and network configuration discovery.
-
-### **Defense Evasion**
-- `T1036` / `T1036.004` – Decoy artifacts and support-themed misdirection.
-
-### **Credential Access**
-- `T1115` – Clipboard content probing.
-
-### **Discovery**
-- `T1083`, `T1057` – Storage and process enumeration.
-- `T1016` – Network configuration validation.
-
-### **Collection**
-- `T1074` – Data staged in ZIP format.
-
-### **Exfiltration**
-- `T1567.002`, `T1041`, `T1048` – Outbound channel testing and simulated exfiltration.
-
-### **Persistence**
-- `T1053.005` – Scheduled task persistence.
-- `T1547.001` – Autorun registry persistence.
-
----
-
-# MITRE ATT&CK Narrative
-
-The activity observed on **gab-intern-vm** aligns closely with multiple stages of the MITRE ATT&CK framework, particularly within the Execution, Discovery, Persistence, Defense Evasion, and Exfiltration tactics. The following narrative outlines how the attacker’s actions map to ATT&CK techniques and how those behaviors fit into a coherent intrusion chain.
-
-The intrusion began with the execution of a support-themed PowerShell script (`SupportTool.ps1`) delivered and run from the **Downloads** directory. This behavior corresponds to **T1059.001 – PowerShell**, as the actor used command-line parameters (`-ExecutionPolicy Bypass`) to override built-in protections and execute untrusted code.
-
-Immediately following initial execution, the actor conducted a series of **Discovery** activities. This included:
-
-- **Clipboard probing** (`Get-Clipboard`) aligning with **T1115 – Clipboard Data**  
-- **Session enumeration** using `qwinsta` and `quser`, aligning with **T1087 / T1033 – Account & System Owner/User Discovery**
-- **Privilege inspection** using `whoami /groups`, mapping to **T1069 – Permission Groups Discovery**
-- **Storage enumeration** using `wmic logicaldisk`, mapping to **T1083 – File and Directory Discovery**
-- **Process enumeration** with `tasklist.exe`, matching **T1057 – Process Discovery**
-
-These actions formed a structured recon phase intended to determine the system’s state, privileges, available data sources, and running defenses.
-
-In parallel, the actor validated outbound connectivity using requests to **`www.msftconnecttest.com`**, blending real-world egress tests into routine system traffic. This activity maps to **T1046 – Network Service Scanning** and **T1016 – System Network Configuration Discovery**, supporting later exfiltration attempts.
-
-The attacker then prepared for data removal through **staging**, compressing reconnaissance artifacts into `ReconArtifacts.zip` under the **Public** directory. This behavior aligns with **T1074 – Data Staged**, indicating intent to consolidate materials for transfer. This was followed by a simulated outbound transfer attempt to external IP **100.29.147.161**, mapping to **T1041 – Exfiltration Over C2 Channel** or **T1567.002 – Exfiltration to Cloud Storage** depending on the categorization used.
-
-Persistence mechanisms were established through a scheduled task named **SupportToolUpdater**, mapping to **T1053.005 – Scheduled Task**, and a backup autorun entry **RemoteAssistUpdater**, mapping to **T1547.001 – Registry Run Keys / Startup Folder**. These dual persistence mechanisms ensured the malicious tooling would continue to run even after reboot or user logon.
-
-Finally, the attacker deployed deceptive artifacts—**DefenderTamperArtifact.lnk** and **SupportChat_log.lnk**—designed to establish a false narrative of remote support assistance. This activity aligns with **T1036 – Masquerading**, as the attacker used naming and placement strategies to disguise malicious intent and mislead analysts.
-
-Overall, the sequence of observed behaviors reflects a deliberate, methodical intrusion workflow involving initial execution, layered reconnaissance, persistence establishment, data staging, exfiltration validation, and deception—each mapping cleanly to well-defined MITRE ATT&CK techniques.
-
----
-
-# After-Action Recommendations
-
-The investigation into the support-themed intrusion on **gab-intern-vm** revealed several gaps in monitoring, configuration, and user security posture that enabled the attacker to execute reconnaissance, stage artifacts, and establish persistence. The following recommendations outline actionable steps to reduce the likelihood of similar incidents and strengthen endpoint resilience.
-
----
-
-## 1. Enhance PowerShell Logging and Restrict Execution Policies
+**Phase 5: Exfiltration Attempts (Flags 10, 12)** 
+- T1071.001 – Application Layer Protocol: Use of standard outbound HTTP to blend with normal traffic.
+- T1041 – Exfiltration Over Command Channel: Attempted transfer of staged data to an external IP.
 
 ### Recommendation
-Enable advanced PowerShell logging and prevent unverified scripts from running by default.
-
-### Actions
-- Enforce `AllSigned` or `RemoteSigned` execution policies via GPO.
-- Enable:
-  - Module Logging  
-  - Script Block Logging  
-  - PowerShell Transcription  
-- Forward PowerShell logs to SIEM for real-time alerting.
-
-### Rationale
-The attacker used PowerShell with `-ExecutionPolicy` to bypass restrictions. Improved logging and enforcement would allow earlier detection and prevention of unauthorized script execution.
-
----
-
-## 2. Harden User Download Folders and Block Script Execution
-
-### Recommendation
-Prevent execution of scripts directly from user-controlled directories such as `Downloads`.
-
-### Actions
-- Enforce WDAC (Windows Defender Application Control) or AppLocker policies:
-  - Block `.ps1`, `.bat`, `.cmd` outside approved paths.
-- Implement Protected Folders for high-risk directories.
-
-### Rationale
-The initial intrusion originated from a script executed directly from the Downloads folder. Blocking execution reduces common user-error attack paths.
-
----
-
-## 3. Improve Endpoint Protection Configuration and Detection Rules
-
-### Recommendation
-Ensure Defender and EDR settings are fully enabled and monitored for tamper-themed behavior.
-
-### Actions
-- Enable Tamper Protection.
-- Create alerting rules for:
-  - Suspicious `.lnk` creation
-  - Execution of system-recon commands (`whoami`, `qwinsta`, etc.)
-  - Disk enumeration commands (`wmic logicaldisk`)
-- Monitor for abnormal scheduled task creation.
-
-### Rationale
-The attacker planted fake tamper artifacts and added persistence via scheduled tasks. Improved detection logic would flag these behaviors.
-
----
-
-## 4. Restrict User Privileges and Enforce Least Privilege
-
-### Recommendation
-Limit user rights to reduce the impact of account compromise.
-
-### Actions
-- Review membership in local groups (e.g., Users, Remote Desktop Users).
-- Standardize least-privilege profiles for intern endpoints.
-- Enforce MFA for privileged operations.
-
-### Rationale
-The compromised account was able to execute recon commands and persistence actions without elevation. Least privilege would reduce this attack surface.
-
----
-
-## 5. Improve Network Egress Controls and Monitoring
-
-### Recommendation
-Implement stricter control and monitoring of outbound network activity.
-
-### Actions
-- Restrict outbound traffic to approved domains.
-- Log and alert on:
-  - Outbound connections to unknown IPs
-  - HTTP traffic to non-corporate servers
-- Enable DNS logging and anomaly detection.
-
-### Rationale
-The attacker tested outbound connectivity (`msftconnecttest.com`) and attempted exfiltration (`100.29.147.161`). Stronger egress controls would have detected or blocked this.
-
----
-
-## 6. Monitor for File Staging and Public Directory Usage
-
-### Recommendation
-Detect and prevent the staging of large files or archives in public-accessible directories.
-
-### Actions
-- Monitor `C:\Users\Public` for new ZIP or data aggregation artifacts.
-- Enforce access controls restricting write access to shared directories.
-- Implement automated scanning for suspicious archive creation.
-
-### Rationale
-The attacker created `ReconArtifacts.zip` in the Public directory, a predictable and writable path. Monitoring this location reduces risk of unnoticed staging.
-
----
-
-## 7. Strengthen User Security Awareness and Training
-
-### Recommendation
-Educate users about risks related to unsolicited support tools and suspicious downloads.
-
-### Actions
-- Train users to:
-  - Avoid running scripts from Downloads
-  - Recognize common social engineering patterns
-  - Report unexpected “support” activity
-- Provide simulated phishing and support impersonation exercises.
-
-### Rationale
-The intrusion leveraged a support/helpdesk theme, a common form of user impersonation. Awareness training can reduce vulnerability to these tactics.
-
----
-
-## 8. Improve Log Retention Policies for Endpoint Telemetry
-
-### Recommendation
-Ensure telemetry retention is long enough to support full forensic investigation.
-
-### Actions
-- Extend MDE/EDR retention from the minimum to at least 30–90 days.
-- Route logs to SIEM or cloud storage to preserve data for hunts.
-- Enable long-term archival for key event types.
-
-### Rationale
-Some registry events (e.g., autorun persistence) were missing due to log retention expiration. Extended retention improves investigation fidelity.
-
----
-
-## 9. Implement Automated Alerting for Persistence Mechanisms
-
-### Recommendation
-Deploy monitoring and alerting for scheduled tasks and autorun entries.
-
-### Actions
-- Enable detection rules for:
-  - `schtasks /Create`
-  - Registry modifications under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- Enforce baseline comparisons to identify new or modified startup items.
-
-### Rationale
-The attacker created `SupportToolUpdater` (scheduled task) and `RemoteAssistUpdater` (autorun). Automated detection helps prevent unnoticed re-entry points.
-
----
-
-# Summary
-
-By implementing these recommendations—strengthening endpoint controls, improving telemetry, limiting user permissions, and enhancing user awareness—the organization can significantly reduce the likelihood of similar support-themed intrusions and improve detection capabilities across early recon, staging, and persistence phases.
-
----
-
-# Conclusion
-
-The investigation into the support-themed intrusion on **gab-intern-vm** revealed a deliberate and methodical sequence of attacker actions designed to blend malicious activity into what appeared to be a routine remote-assistance session. By consistently using naming conventions associated with IT support workflows—*SupportTool, RemoteAssistUpdater, SupportChat_log*—the actor effectively masked reconnaissance, staging, and persistence steps behind a plausible operational narrative.
-
-Analysis confirmed that the intrusion progressed through a complete and coherent attack chain:
-
-- Initial access via script execution in an untrusted user directory  
-- Host, privilege, and session reconnaissance  
-- Storage and runtime enumeration  
-- Data staging in a publicly accessible directory  
-- Outbound communication testing and simulated exfiltration  
-- Multi-layer persistence (scheduled tasks + autorun registry keys)  
-- Placement of decoy artifacts intended to justify or mislead  
-
-Throughout the timeline, the attacker demonstrated a strong preference for **living-off-the-land techniques**, leveraging native Windows utilities such as *PowerShell, whoami, qwinsta, WMIC,* and *tasklist*. This approach minimized their detection footprint and aligned closely with early-stage hands-on-keyboard intrusion patterns.
-
-Although the simulated exfiltration attempt did not result in confirmed data loss, the presence of a staged ZIP archive and outbound transfer attempts shows clear intent to extract reconnaissance data. Combined with both primary and fallback persistence mechanisms, the actor was positioned to regain access to the endpoint if left uninterrupted.
-
-Overall, the scenario highlights the importance of monitoring user-context script execution, detecting reconnaissance behaviors early, and correlating subtle artifacts—such as deceptive log files or naming conventions—into a holistic narrative. Effective detection relies not only on individual alerts but on understanding how sequential low-signal events build toward a clearly malicious operational pattern.
+- Isolate and Contain Affected Systems to stop further reconnaissance, staging, or execution of persistence mechanisms.
+- Remove All Persistence Mechanisms, including scheduled tasks (e.g., SupportToolUpdater) and autorun entries (e.g., RemoteAssistUpdater).
+- Audit and Block Suspicious Outbound Traffic, especially connections to unrecognized IPs or domains involved in the intrusion.
+- Perform Deep Artifact Analysis on created archives and related files to assess data exposure and intent.
+- Strengthen Monitoring and Alerting for clipboard access, privilege enumeration, and rapid recon sequences.
+- Educate Users about the risks of running scripts or executables from untrusted sources—especially those delivered as “support tools.”
