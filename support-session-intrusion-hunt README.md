@@ -5,6 +5,7 @@ Between October 1–15, 2025, I identified a pattern of unusual behavior across 
 Of all the systems reviewed, gab-intern-vm stood out immediately. It showed the first suspicious execution, the highest volume of untrusted process activity, and multiple indicators matching the intel that intern-operated machines were affected early in the timeline. Because of this, it became the primary pivot point for the investigation.
 
 This report breaks down the sequence of events, aligns the observed activity with MITRE ATT&CK techniques, and evaluates whether the “support session” was legitimate or an attempt to disguise targeted malicious behavior.
+
 ---
 
 # Scenario Overview
